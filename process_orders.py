@@ -1,8 +1,6 @@
 import csv
 
-file_path = "/Users/athreya/Documents/0.Learning/0a.Phase0/"
 file_name = input("Enter the file name to ingest: ")
-file_to_read = file_path + file_name
 
 
 def read_data(file_to_read):
@@ -26,31 +24,31 @@ def clean_data(data_rows):
     empty_rows=0
     invalid_amount = 0
     for row in data_rows:
-        clean_row = []
-        row_tuple = tuple([row[0], row[2]])
-        if row_tuple in seen_data:
-            duplicates += 1
+        if (row[0] == "" and row[1] == "" and row[2] == ""):
+            empty_rows += 1
             continue
-        seen_data.add(row_tuple)
-
-        if (row[1] == ""):
+        elif (row[1] == ""):
             missing_customer_name += 1
             continue
         elif row[2] == "":
             missing_amount += 1
             continue
-        elif (row[0] == "" and row[1] == "" and row[2] == ""):
-            empty_rows += 1
-            continue
         else :
             try: 
                 float(row[2])
-                clean_row.append(row)
             except ValueError:
                 invalid_amount += 1
                 continue
+
+
+
+        row_tuple = tuple([row[0], row[2]])
+        if row_tuple in seen_data:
+            duplicates += 1
+            continue
+        seen_data.add(row_tuple)
         
-        clean_rows.append(clean_row)
+        clean_rows.append(row)
 
 
     print(f"Skipped {missing_amount} rows : Missing Amount")
@@ -71,14 +69,7 @@ def write_data(header, clean_rows):
 
 
 
-header, rows = read_data(file_to_read)
+header, rows = read_data(file_name)
 cleaned_data = clean_data(rows)
 write_data(header, cleaned_data)
 
-    
-        
-
-
-
-
-        
