@@ -5,14 +5,15 @@ file_name = input("Enter the file name to ingest: ")
 
 def read_data(file_to_read):
     with open(file_to_read, "r") as file:
-        reader = csv.reader(file)
-        header = next(reader)
+        # reader = csv.reader(file)
+        reader = csv.DictReader(file)
+        # header = next(reader)
         rows = []
 
         for row in reader:
             rows.append(row)
 
-    return header, rows
+    return rows
 
 
 def clean_data(data_rows):
@@ -24,25 +25,26 @@ def clean_data(data_rows):
     empty_rows=0
     invalid_amount = 0
     for row in data_rows:
-        if (row[0] == "" and row[1] == "" and row[2] == ""):
+        if (row["order_id"] == "" and row["customer_name"] == "" and row["amount"] == ""):
             empty_rows += 1
             continue
-        elif (row[1] == ""):
+        elif (row["customer_name"] == ""):
             missing_customer_name += 1
             continue
-        elif row[2] == "":
+        elif row["amount"] == "":
             missing_amount += 1
             continue
         else :
             try: 
-                float(row[2])
+                if row["amount"]:
+                    float(row["amount"])
             except ValueError:
                 invalid_amount += 1
                 continue
 
 
 
-        row_tuple = tuple([row[0], row[2]])
+        row_tuple = tuple([row["order_id"], row["amount"]])
         if row_tuple in seen_data:
             duplicates += 1
             continue
@@ -59,17 +61,20 @@ def clean_data(data_rows):
     
     return clean_rows
 
-def write_data(header, clean_rows):
+def write_data(clean_rows):
     with open("clean_orders.csv","w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(header)
-        writer.writerows(clean_rows)
+        if clean_rows:
+            writer = csv.DictWriter(file,fieldnames=clean_rows[0].keys())
+            writer.writeheader()
+            writer.writerows(clean_rows)
 
-    print("Done. Rows written:", len(clean_rows))
+            print("Done. Rows written:", len(clean_rows))
+        else:
+            print("No valid data to write.")
 
 
 
-header, rows = read_data(file_name)
+rows = read_data(file_name)
 cleaned_data = clean_data(rows)
-write_data(header, cleaned_data)
+write_data(cleaned_data)
 
