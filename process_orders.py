@@ -5,9 +5,9 @@ file_name = input("Enter the file name to ingest: ")
 
 def read_data(file_to_read):
     with open(file_to_read, "r") as file:
-        # reader = csv.reader(file)
+
         reader = csv.DictReader(file)
-        # header = next(reader)
+
         rows = []
 
         for row in reader:
@@ -73,8 +73,8 @@ def write_data(clean_rows):
             print("No valid data to write.")
 
 
-
-rows = read_data(file_name)
-cleaned_data = clean_data(rows)
-write_data(cleaned_data)
+if __name__ == "__main__":
+    rows = read_data(file_name)
+    cleaned_data = clean_data(rows)
+    write_data(cleaned_data)
 
