@@ -79,3 +79,28 @@ WHERE rn = 1;
 --     FROM <table_with_duplicates>
 -- )
 -- SELECT * FROM numbered WHERE rn = 1;
+
+
+-- Q1. Given a table orders(order_id, customer_id, amount, order_date) — 
+-- write a query that returns each order alongside the running total of amount 
+-- for that customer, ordered by order_date.
+
+SELECT 
+customer_id,
+order_id,
+amount,
+SUM(amount) OVER (PARTITION BY customer_id ORDER BY order_date) AS running_total
+FROM orders
+ORDER BY customer_id, order_date;
+
+- Q2. Same table — return only the most recent order per customer. 
+-- If two orders have the same date, keep the one with the higher amount.
+WITH numbered AS (
+    SELECT customer_id,
+    order_id,
+    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC, amount DESC) AS rn
+    FROM orders
+)
+SELECT customer_id, order_id
+FROM numbered
+WHERE rn = 1;

@@ -1,0 +1,59 @@
+-- Demonstrates the slowness of a query without an index and how to analyze it using EXPLAIN ANALYZE.
+EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = 42;
+
+--                                                        QUERY PLAN
+-- ------------------------------------------------------------------------------------------------------------------------
+--  Gather  (cost=1000.00..6838.45 rows=498 width=18) (actual time=1.763..28.243 rows=478 loops=1)
+--    Workers Planned: 2
+--    Workers Launched: 2
+--    ->  Parallel Seq Scan on orders  (cost=0.00..5788.65 rows=208 width=18) (actual time=0.153..16.936 rows=159 loops=3)
+--          Filter: (customer_id = 42)
+--          Rows Removed by Filter: 166474
+--  Planning Time: 0.600 ms
+--  Execution Time: 28.287 ms
+-- (8 rows)
+
+-- Now we create an indec on the customer_id column to speed up the query.
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+
+-- The below query should now run much faster due to the index, and we can confirm this by analyzing it again.
+EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = 42;
+
+-- Bitmap Heap Scan on orders  (cost=8.28..1334.63 rows=498 width=18) (actual time=1.246..2.045 rows=478 loops=1)
+--    Recheck Cond: (customer_id = 42)
+--    Heap Blocks: exact=443
+--    ->  Bitmap Index Scan on idx_orders_customer_id  (cost=0.00..8.16 rows=498 width=0) (actual time=1.193..1.194 rows=478 loops=1)
+--          Index Cond: (customer_id = 42)
+--  Planning Time: 0.606 ms
+--  Execution Time: 2.100 ms
+-- (7 rows)
+
+-- #Now another query with aggregation and grouping
+EXPLAIN ANALYZE
+SELECT customer_id, SUM(amount)
+FROM orders
+GROUP BY customer_id
+ORDER BY SUM(amount) DESC
+LIMIT 10;
+
+-- QUERY PLAN
+-- ------------------------------------------------------------------------------------------------------------------------------------------------------
+--  Limit  (cost=7571.25..7571.27 rows=10 width=36) (actual time=55.077..55.091 rows=10 loops=1)
+--    ->  Sort  (cost=7571.25..7573.75 rows=1001 width=36) (actual time=55.075..55.089 rows=10 loops=1)
+--          Sort Key: (sum(amount)) DESC
+--          Sort Method: top-N heapsort  Memory: 25kB
+--          ->  Finalize HashAggregate  (cost=7537.10..7549.62 rows=1001 width=36) (actual time=54.760..54.963 rows=1001 loops=1)
+--                Group Key: customer_id
+--                Batches: 1  Memory Usage: 833kB
+--                ->  Gather  (cost=7309.38..7522.09 rows=2002 width=36) (actual time=52.960..53.392 rows=3003 loops=1)
+--                      Workers Planned: 2
+--                      Workers Launched: 2
+--                      ->  Partial HashAggregate  (cost=6309.38..6321.89 rows=1001 width=36)(actual time=48.509..48.735 rows=1001 loops=3)
+--                            Group Key: customer_id
+--                            Batches: 1  Memory Usage: 577kB
+--                            Worker 0:  Batches: 1  Memory Usage: 577kB
+--                            Worker 1:  Batches: 1  Memory Usage: 577kB
+--                            ->  Parallel Seq Scan on orders  (cost=0.00..5267.92 rows=208292 width=10) (actual time=0.008..11.398 rows=166633 loops=3)
+--  Planning Time: 0.191 ms
+--  Execution Time: 55.155 ms
+-- (18 rows)
